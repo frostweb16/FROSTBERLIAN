@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <style>
+        /* Gunakan CSS yang sama dari file utama */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Panel</h1>
+        <div id="authContainer" class="section active">
+            <h2>Login Admin</h2>
+            <input type="text" id="adminUsername" placeholder="Admin Username">
+            <input type="password" id="adminPassword" placeholder="Admin Password">
+            <button onclick="adminLogin()">Login</button>
+        </div>
+        <div id="adminPanel" class="section" style="display: none;">
+            <h2>Kelola Pengguna</h2>
+            <table id="usersTable">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Coins</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody"></tbody>
+            </table>
+            <h2>Tambah Koin</h2>
+            <input type="text" id="targetUsername" placeholder="Username">
+            <input type="number" id="coinAmount" placeholder="Jumlah Koin">
+            <button onclick="adminAddCoins()">Tambah Koin</button>
+            <button onclick="logout()">Logout</button>
+        </div>
+    </div>
+    <script>
+        async function adminLogin() {
+            const username = document.getElementById('adminUsername').value.trim();
+            const password = document.getElementById('adminPassword').value.trim();
+            await loadData();
+            if (username !== 'admin' || password !== 'admin123') { // Ganti dengan kredensial admin Anda
+                alert('Kredensial admin salah!');
+                return;
+            }
+            document.getElementById('authContainer').classList.remove('active');
+            document.getElementById('adminPanel').classList.add('active');
+            displayUsers();
+        }
+
+        async function displayUsers() {
+            await loadData();
+            const usersTableBody = document.getElementById('usersTableBody');
+            usersTableBody.innerHTML = '';
+            for (const username in usersData) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${username}</td>
+                    <td>${usersData[username].coins}</td>
+                    <td><button onclick="deleteUser('${username}')">Hapus</button></td>
+                `;
+                usersTableBody.appendChild(row);
+            }
+        }
+
+        async function adminAddCoins() {
+            const targetUsername = document.getElementById('targetUsername').value.trim();
+            const amount = parseInt(document.getElementById('coinAmount').value);
+            if (!usersData[targetUsername]) {
+                alert('Pengguna tidak ditemukan!');
+                return;
+            }
+            if (amount > 0 && !isNaN(amount)) {
+                usersData[targetUsername].coins += amount;
+                await saveData();
+                updateLeaderboard(targetUsername, usersData[targetUsername].coins);
+                displayUsers();
+                alert(`Berhasil menambah ${amount} koin untuk ${targetUsername}`);
+                document.getElementById('targetUsername').value = '';
+                document.getElementById('coinAmount').value = '';
+            } else {
+                alert('Masukkan jumlah koin yang valid!');
+            }
+        }
+
+        async function deleteUser(username) {
+            if (confirm(`Hapus pengguna ${username}?`)) {
+                delete usersData[username];
+                leaderboardData = leaderboardData.filter(user => user.username !== username);
+                teenpattiWins = teenpattiWins.filter(user => user.username !== username);
+                delete teenpattiServerBets[username];
+                await saveData();
+                displayUsers();
+                alert(`Pengguna ${username} telah dihapus`);
+            }
+        }
+
+        function logout() {
+            document.getElementById('adminPanel').classList.remove('active');
+            document.getElementById('authContainer').classList.add('active');
+            document.getElementById('adminUsername').value = 'latif1';
+            document.getElementById('adminPassword').value = 'latif1';
+        }
+    </script>
+</body>
+</html>
