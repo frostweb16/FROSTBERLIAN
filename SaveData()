@@ -1,0 +1,35 @@
+async function saveData() {
+    const data = {
+        users: usersData,
+        leaderboard: leaderboardData,
+        teenpattiWins: teenpattiWins,
+        teenpattiHistory: teenpattiHistory,
+        teenpattiServerBets: teenpattiServerBets
+    };
+    const token = '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'; // Ganti dengan token baru
+    const repo = 'frostweb16/FROSTBERLIAN';
+    const path = 'data.json';
+    try {
+        const getResponse = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+            headers: { Authorization: `token ${token}` }
+        });
+        if (!getResponse.ok) throw new Error('Gagal mengambil SHA');
+        const fileData = await getResponse.json();
+        const sha = fileData.sha;
+
+        const response = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+            method: 'PUT',
+            headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message: 'Update data.json',
+                content: btoa(JSON.stringify(data)),
+                sha: sha
+            })
+        });
+        if (!response.ok) throw new Error('Gagal menyimpan data');
+        console.log('Data berhasil disimpan');
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Gagal menyimpan data. Periksa token.');
+    }
+}
