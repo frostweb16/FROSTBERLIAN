@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Game Zone</title>
     <style>
+        /* CSS tetap sama seperti sebelumnya */
         * {
             margin: 0;
             padding: 0;
@@ -518,7 +519,7 @@
                         <div class="teenpatti-card" id="purpleCard2"></div>
                         <div class="teenpatti-card" id="purpleCard3"></div>
                     </div>
-                    <div class="result" id="teenpattiBetResult"></div>
+                    <div class relative="result" id="teenpattiBetResult"></div>
                     <div class="history" id="teenpattiHistory"></div>
                 </div>
                 <button onclick="backToHome()">Kembali</button>
@@ -532,13 +533,57 @@
         let teenpattiBets = {};
         let selectedChip = 0;
         let teenpattiTimer = null;
-        let teenpattiHistory = JSON.parse(localStorage.getItem('teenpattiHistory')) || [];
-        let teenpattiServerBets = JSON.parse(localStorage.getItem('teenpattiServerBets')) || {};
-        let teenpattiWins = JSON.parse(localStorage.getItem('teenpattiWins')) || [];
+        let teenpattiHistory = [];
+        let teenpattiServerBets = {};
+        let teenpattiWins = [];
+        let usersData = {};
+        let leaderboardData = [];
         const suits = ['♠', '♥', '♦', '♣'];
         const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
-        let leaderboardData = JSON.parse(localStorage.getItem('leaderboard')) || [];
-        let usersData = JSON.parse(localStorage.getItem('users')) || {};
+
+        // Fungsi untuk memuat data dari data.json
+        async function loadData() {
+            try {
+                const response = await fetch('data.json');
+                const data = await response.json();
+                usersData = data.users || {};
+                leaderboardData = data.leaderboard || [];
+                teenpattiWins = data.teenpattiWins || [];
+                teenpattiHistory = data.teenpattiHistory || [];
+                teenpattiServerBets = data.teenpattiServerBets || {};
+            } catch (error) {
+                console.error('Error loading data.json:', error);
+                // Fallback ke data default jika gagal memuat
+                usersData = {};
+                leaderboardData = [];
+                teenpattiWins = [];
+                teenpattiHistory = [];
+                teenpattiServerBets = {};
+            }
+        }
+
+        // Fungsi untuk menyimpan data ke data.json
+        async function saveData() {
+            const data = {
+                users: usersData,
+                leaderboard: leaderboardData,
+                teenpattiWins: teenpattiWins,
+                teenpattiHistory: teenpattiHistory,
+                teenpattiServerBets: teenpattiServerBets
+            };
+            // Untuk pengujian lokal, ini hanya simulasi. Anda perlu backend untuk menulis ke file.
+            console.log('Saving data:', data);
+            // Jika menggunakan backend, kirim data ke server, misalnya:
+            // await fetch('save-data', { method: 'POST', body: JSON.stringify(data), headers: { 'Content-Type': 'application/json' } });
+            // Untuk GitHub Pages, gunakan GitHub API untuk memperbarui file data.json.
+        }
+
+        // Inisialisasi data saat halaman dimuat
+        window.onload = async () => {
+            await loadData();
+            updateCoinDisplay();
+            updateTeenPattiHistoryDisplay();
+        };
 
         function updateLeaderboard(username, chipAmount) {
             const existingUser = leaderboardData.find(user => user.username === username);
@@ -549,7 +594,7 @@
             }
             leaderboardData.sort((a, b) => b.chips - a.chips);
             if (leaderboardData.length > 100) leaderboardData = leaderboardData.slice(0, 100);
-            localStorage.setItem('leaderboard', JSON.stringify(leaderboardData));
+            saveData();
         }
 
         function updateTeenPattiWins(username) {
@@ -561,12 +606,13 @@
             }
             teenpattiWins.sort((a, b) => b.wins - a.wins);
             if (teenpattiWins.length > 10) teenpattiWins = teenpattiWins.slice(0, 10);
-            localStorage.setItem('teenpattiWins', JSON.stringify(teenpattiWins));
+            saveData();
         }
 
         function toggleLeaderboard() {
             const leaderboard = document.getElementById('leaderboard');
-            leaderboard.classList.toggle('active');
+            leaderboard.classList.toggle('activewriting
+System: 'active');
             if (leaderboard.classList.contains('active')) {
                 displayLeaderboard();
             }
@@ -608,7 +654,7 @@
             document.getElementById('loginForm').style.display = 'block';
         }
 
-        function login() {
+        async function login() {
             const username = document.getElementById('loginUsername').value.trim();
             const password = document.getElementById('loginPassword').value.trim();
             if (!username || !password) {
@@ -632,9 +678,10 @@
             document.getElementById('loginPassword').value = '';
             updateCoinDisplay();
             updateLeaderboard(username, coins);
+            await saveData();
         }
 
-        function register() {
+        async function register() {
             const username = document.getElementById('regUsername').value.trim();
             const password = document.getElementById('regPassword').value.trim();
             if (!username || !password) {
@@ -654,19 +701,19 @@
                 return;
             }
             usersData[username] = { coins: 10000, password: password };
-            localStorage.setItem('users', JSON.stringify(usersData));
+            await saveData();
             alert('Pendaftaran berhasil! Silakan login.');
             document.getElementById('regUsername').value = '';
             document.getElementById('regPassword').value = '';
             showLogin();
         }
 
-        function topUpCoins() {
+        async function topUpCoins() {
             const amount = parseInt(document.getElementById('topUpAmount').value);
             if (amount > 0 && !isNaN(amount)) {
                 coins += amount;
                 usersData[currentUsername].coins = coins;
-                localStorage.setItem('users', JSON.stringify(usersData));
+                await saveData();
                 updateCoinDisplay();
                 updateLeaderboard(currentUsername, coins);
                 document.getElementById('topUpAmount').value = '';
@@ -676,7 +723,7 @@
             }
         }
 
-        function sendCoins() {
+        async function sendCoins() {
             const id = document.getElementById('sendId').value;
             const amount = parseInt(document.getElementById('sendAmount').value);
             if (!id || id === currentUsername) {
@@ -691,7 +738,7 @@
                 coins -= amount;
                 usersData[currentUsername].coins = coins;
                 usersData[id].coins += amount;
-                localStorage.setItem('users', JSON.stringify(usersData));
+                await saveData();
                 updateCoinDisplay();
                 updateLeaderboard(currentUsername, coins);
                 updateLeaderboard(id, usersData[id].coins);
@@ -750,13 +797,13 @@
             document.getElementById('sicboBetResult').textContent = 'Pilih taruhan dan jumlah koin!';
         }
 
-        function placeSicboBet() {
+        async function placeSicboBet() {
             const betType = document.getElementById('sicboBetType').value;
             const betAmount = parseInt(document.getElementById('sicboBetAmount').value);
             if (betAmount > 0 && betAmount <= coins && !isNaN(betAmount)) {
                 coins -= betAmount;
                 usersData[currentUsername].coins = coins;
-                localStorage.setItem('users', JSON.stringify(usersData));
+                await saveData();
                 updateCoinDisplay();
                 updateLeaderboard(currentUsername, coins);
                 rollSicboDice(betType, betAmount);
@@ -795,7 +842,7 @@
             }, 100);
         }
 
-        function checkSicboBetResult(betType, betAmount, total) {
+        async function checkSicboBetResult(betType, betAmount, total) {
             let resultText = `Hasil: ${total} - `;
             let win = false;
             if (betType === 'Big' && total >= 11 && total <= 17) win = true;
@@ -807,7 +854,7 @@
                 resultText += 'Kamu kalah!';
             }
             usersData[currentUsername].coins = coins;
-            localStorage.setItem('users', JSON.stringify(usersData));
+            await saveData();
             updateCoinDisplay();
             updateLeaderboard(currentUsername, coins);
             document.getElementById('sicboBetResult').textContent = resultText;
@@ -823,12 +870,12 @@
             document.getElementById('botName').textContent = botNames[Math.floor(Math.random() * botNames.length)];
         }
 
-        function placeBigCardBet() {
+        async function placeBigCardBet() {
             const betAmount = parseInt(document.getElementById('bigcardBetAmount').value);
             if (betAmount > 0 && betAmount <= coins && !isNaN(betAmount)) {
                 coins -= betAmount;
                 usersData[currentUsername].coins = coins;
-                localStorage.setItem('users', JSON.stringify(usersData));
+                await saveData();
                 updateCoinDisplay();
                 updateLeaderboard(currentUsername, coins);
                 dealBigCardCards(betAmount);
@@ -874,7 +921,7 @@
             return values.indexOf(value);
         }
 
-        function checkBigCardBetResult(betAmount, playerCard, botCard) {
+        async function checkBigCardBetResult(betAmount, playerCard, botCard) {
             const playerScore = getCardValue(playerCard);
             const botScore = getCardValue(botCard);
             let resultText = `${currentUsername}: ${playerCard} | ${document.getElementById('botName').textContent}: ${botCard} - `;
@@ -885,7 +932,7 @@
                 resultText += `${document.getElementById('botName').textContent} menang!`;
             }
             usersData[currentUsername].coins = coins;
-            localStorage.setItem('users', JSON.stringify(usersData));
+            await saveData();
             updateCoinDisplay();
             updateLeaderboard(currentUsername, coins);
             document.getElementById('bigcardBetResult').textContent = resultText;
@@ -899,13 +946,13 @@
             document.getElementById('daduanBetResult').textContent = 'Pilih taruhan dan jumlah koin!';
         }
 
-        function placeDaduanBet() {
+        async function placeDaduanBet() {
             const betType = document.getElementById('daduanBetType').value;
             const betAmount = parseInt(document.getElementById('daduanBetAmount').value);
             if (betAmount > 0 && betAmount <= coins && !isNaN(betAmount)) {
                 coins -= betAmount;
                 usersData[currentUsername].coins = coins;
-                localStorage.setItem('users', JSON.stringify(usersData));
+                await saveData();
                 updateCoinDisplay();
                 updateLeaderboard(currentUsername, coins);
                 rollDaduanDice(betType, betAmount);
@@ -941,7 +988,7 @@
             }, 100);
         }
 
-        function checkDaduanBetResult(betType, betAmount, total) {
+        async function checkDaduanBetResult(betType, betAmount, total) {
             let resultText = `Hasil: ${total} - `;
             let win = false;
             if (betType === 'Over' && total > 7) win = true;
@@ -956,7 +1003,7 @@
                 resultText += 'Kamu kalah!';
             }
             usersData[currentUsername].coins = coins;
-            localStorage.setItem('users', JSON.stringify(usersData));
+            await saveData();
             updateCoinDisplay();
             updateLeaderboard(currentUsername, coins);
             document.getElementById('daduanBetResult').textContent = resultText;
@@ -985,7 +1032,7 @@
             document.getElementById('teenpattiBetResult').textContent = `Chip terpilih: ${amount}`;
         }
 
-        function placeTeenPattiBet(color) {
+        async function placeTeenPattiBet(color) {
             if (!selectedChip) {
                 alert('Pilih chip terlebih dahulu!');
                 return;
@@ -1001,10 +1048,9 @@
             teenpattiBets[color] = (teenpattiBets[color] || 0) + selectedChip;
             coins -= selectedChip;
             usersData[currentUsername].coins = coins;
-            localStorage.setItem('users', JSON.stringify(usersData));
             teenpattiServerBets[currentUsername] = teenpattiServerBets[currentUsername] || {};
             teenpattiServerBets[currentUsername][color] = (teenpattiServerBets[currentUsername][color] || 0) + selectedChip;
-            localStorage.setItem('teenpattiServerBets', JSON.stringify(teenpattiServerBets));
+            await saveData();
             updateCoinDisplay();
             updateLeaderboard(currentUsername, coins);
             updateTeenPattiBetsDisplay();
@@ -1100,7 +1146,7 @@
             return { rank: 1, name: 'High Card', high: values[0] };
         }
 
-        function checkTeenPattiResult(greenCards, blueCards, purpleCards) {
+        async function checkTeenPattiResult(greenCards, blueCards, purpleCards) {
             const greenHand = evaluateTeenPattiHand(greenCards);
             const blueHand = evaluateTeenPattiHand(blueCards);
             const purpleHand = evaluateTeenPattiHand(purpleCards);
@@ -1113,14 +1159,14 @@
             let resultText = `Hijau: ${greenHand.name} | Biru: ${blueHand.name} | Ungu: ${purpleHand.name} - `;
             teenpattiHistory.push(winner.color);
             if (teenpattiHistory.length > 20) teenpattiHistory = [];
-            localStorage.setItem('teenpattiHistory', JSON.stringify(teenpattiHistory));
+            await saveData();
             updateTeenPattiHistoryDisplay();
 
             for (const user in teenpattiServerBets) {
                 if (teenpattiServerBets[user][winner.color]) {
                     const winAmount = teenpattiServerBets[user][winner.color] * 3;
                     usersData[user].coins += winAmount;
-                    localStorage.setItem('users', JSON.stringify(usersData));
+                    await saveData();
                     updateLeaderboard(user, usersData[user].coins);
                     if (user === currentUsername) {
                         coins = usersData[user].coins;
@@ -1135,7 +1181,7 @@
             }
 
             teenpattiServerBets = {};
-            localStorage.setItem('teenpattiServerBets', JSON.stringify(teenpattiServerBets));
+            await saveData();
             document.querySelectorAll('.column').forEach(col => col.innerHTML = col.textContent);
             updateTeenPattiBetsDisplay();
             document.getElementById('teenpattiBetResult').textContent = resultText;
